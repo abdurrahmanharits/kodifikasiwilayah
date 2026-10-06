@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Permanent wilayah name labels on the map (Leaflet divIcon). The icon is
+   0x0 at the label anchor; the span centers itself on that point. */
+.wilayah-label {
+  pointer-events: none;
+}
+.wilayah-label span {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+  font: 600 11px/1.1 Arial, Helvetica, sans-serif;
+  color: #111827;
+  /* 1px white buffer: a hard (unblurred) 1px offset in all 8 directions. */
+  text-shadow:
+    -1px -1px 0 #fff,
+    0 -1px 0 #fff,
+    1px -1px 0 #fff,
+    -1px 0 0 #fff,
+    1px 0 0 #fff,
+    -1px 1px 0 #fff,
+    0 1px 0 #fff,
+    1px 1px 0 #fff;
+}
