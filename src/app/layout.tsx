@@ -21,9 +21,11 @@ export const metadata: Metadata = {
     template: "%s | Kode Wilayah Indonesia",
   },
   description: "Cari kode dan data wilayah administrasi Indonesia — provinsi, kabupaten/kota, kecamatan, desa/kelurahan.",
-  verification: {
-    google: "U1rqvZoRzV3_HcyX_QfHWix95xIuMOJ1_gAttVkHSUI",
-  },
+  // Google Search Console token for this deployment's own domain; the meta
+  // tag is omitted entirely until GOOGLE_SITE_VERIFICATION is set.
+  ...(process.env.GOOGLE_SITE_VERIFICATION && {
+    verification: { google: process.env.GOOGLE_SITE_VERIFICATION },
+  }),
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
