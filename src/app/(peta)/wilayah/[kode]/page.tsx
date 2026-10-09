@@ -95,15 +95,6 @@ const getBreadcrumbAncestors = cache(async (kode: string, level: Level): Promise
   return crumbs;
 });
 
-// Only checks that an outline exists (to decide whether to offer downloads);
-// the outline itself is fetched client-side by the map.
-function geomExists(
-  table: "provinsi_geom" | "kabupaten_geom" | "kecamatan_geom" | "desa_geom",
-  kode: string
-) {
-  return supabase.from(table).select("kode").eq("kode", kode).maybeSingle();
-}
-
 export async function generateMetadata({
   params,
 }: PageProps<"/wilayah/[kode]">): Promise<Metadata> {
@@ -187,14 +178,11 @@ export default async function WilayahDetailPage({
     const { data: provinsi } = await getProvinsiRow(kode);
     if (!provinsi) notFound();
 
-    const [{ data: kabupaten }, { data: geom }] = await Promise.all([
-      supabase
-        .from("kabupaten_kota")
-        .select("kode,nama,jenis")
-        .eq("provinsi_kode", kode)
-        .order("nama"),
-      geomExists("provinsi_geom", kode),
-    ]);
+    const { data: kabupaten } = await supabase
+      .from("kabupaten_kota")
+      .select("kode,nama,jenis")
+      .eq("provinsi_kode", kode)
+      .order("nama");
 
     return (
       <DetailLayout crumbs={[]} level={level} kode={provinsi.kode} nama={provinsi.nama}>
@@ -203,14 +191,6 @@ export default async function WilayahDetailPage({
             { label: "Ibukota", value: provinsi.ibukota },
             { label: "Luas", value: `${provinsi.luas_km2.toLocaleString("id-ID")} km²` },
             { label: "Penduduk", value: provinsi.jumlah_penduduk.toLocaleString("id-ID") },
-          ]}
-        />
-        <DownloadSection
-          kode={provinsi.kode}
-          available={Boolean(geom)}
-          downloads={[
-            { isi: "batas", label: "Batas provinsi" },
-            { isi: "kabupaten", label: "Semua kabupaten/kota" },
           ]}
         />
         <Section title={`Kabupaten/Kota (${kabupaten?.length ?? 0})`}>
@@ -224,7 +204,7 @@ export default async function WilayahDetailPage({
     const { data: kab } = await getKabupatenRow(kode);
     if (!kab) notFound();
 
-    const [{ data: kecamatan }, { data: riwayat }, crumbs, { data: geom }] = await Promise.all([
+    const [{ data: kecamatan }, { data: riwayat }, crumbs] = await Promise.all([
       supabase.from("kecamatan").select("kode,nama").eq("kabupaten_kode", kode).order("nama"),
       // Riwayat directly under this kabupaten: kecamatan that were themselves
       // renamed/removed (their own now-defunct kode sits in kecamatan_kode),
@@ -235,7 +215,6 @@ export default async function WilayahDetailPage({
         .eq("kabupaten_kode", kode)
         .or("level_asal.eq.KECAMATAN_RIWAYAT,kecamatan_kode.is.null"),
       getBreadcrumbAncestors(kode, level),
-      geomExists("kabupaten_geom", kode),
     ]);
 
     return (
@@ -248,15 +227,6 @@ export default async function WilayahDetailPage({
             { label: "Kecamatan", value: kab.jumlah_kecamatan },
             { label: "Kelurahan", value: kab.jumlah_kelurahan },
             { label: "Desa", value: kab.jumlah_desa },
-          ]}
-        />
-        <DownloadSection
-          kode={kab.kode}
-          available={Boolean(geom)}
-          downloads={[
-            { isi: "batas", label: "Batas kabupaten/kota" },
-            { isi: "kecamatan", label: "Semua kecamatan" },
-            { isi: "desa", label: "Semua desa/kelurahan" },
           ]}
         />
         <Section title={`Kecamatan (${kecamatan?.length ?? 0})`}>
@@ -275,7 +245,7 @@ export default async function WilayahDetailPage({
     const { data: kec } = await getKecamatanRow(kode);
     if (!kec) notFound();
 
-    const [{ data: desa }, { data: riwayat }, crumbs, { data: geom }] = await Promise.all([
+    const [{ data: desa }, { data: riwayat }, crumbs] = await Promise.all([
       supabase
         .from("desa_kelurahan")
         .select("kode,nama,jenis")
@@ -286,7 +256,6 @@ export default async function WilayahDetailPage({
         .select("id,nama_wilayah,level_asal,keterangan")
         .eq("kecamatan_kode", kode),
       getBreadcrumbAncestors(kode, level),
-      geomExists("kecamatan_geom", kode),
     ]);
 
     return (
@@ -295,14 +264,6 @@ export default async function WilayahDetailPage({
           stats={[
             { label: "Kelurahan", value: kec.jumlah_kelurahan },
             { label: "Desa", value: kec.jumlah_desa },
-          ]}
-        />
-        <DownloadSection
-          kode={kec.kode}
-          available={Boolean(geom)}
-          downloads={[
-            { isi: "batas", label: "Batas kecamatan" },
-            { isi: "desa", label: "Semua desa/kelurahan" },
           ]}
         />
         <Section title={`Desa/Kelurahan (${desa?.length ?? 0})`}>
@@ -321,7 +282,7 @@ export default async function WilayahDetailPage({
   const { data: desa } = await getDesaRow(kode);
   if (!desa) notFound();
 
-  const [{ data: siblings }, crumbs, { data: geom }] = await Promise.all([
+  const [{ data: siblings }, crumbs] = await Promise.all([
     supabase
       .from("desa_kelurahan")
       .select("kode,nama,jenis")
@@ -329,59 +290,17 @@ export default async function WilayahDetailPage({
       .neq("kode", kode)
       .order("nama"),
     getBreadcrumbAncestors(kode, level),
-    geomExists("desa_geom", kode),
   ]);
   const kecamatanNama = crumbs[crumbs.length - 1]?.nama ?? "kecamatan ini";
 
   return (
     <DetailLayout crumbs={crumbs} level={level} kode={desa.kode} nama={desa.nama} jenis={desa.jenis}>
-      <DownloadSection
-        kode={desa.kode}
-        available={Boolean(geom)}
-        downloads={[{ isi: "batas", label: "Batas desa/kelurahan" }]}
-      />
       {siblings && siblings.length > 0 && (
         <Section title={`Desa/Kelurahan Lain di Kec. ${kecamatanNama} (${siblings.length})`}>
           <ChildList items={siblings} />
         </Section>
       )}
     </DetailLayout>
-  );
-}
-
-// The map itself lives in the shared (peta) layout; the panel only offers
-// the shapefile downloads for what the map is showing.
-function DownloadSection({
-  kode,
-  available,
-  downloads,
-}: {
-  kode: string;
-  available: boolean;
-  downloads: { isi: "batas" | "kabupaten" | "kecamatan" | "desa"; label: string }[];
-}) {
-  if (!available) {
-    return <p className="text-xs text-gray-400">Peta batas wilayah ini belum tersedia untuk diunduh.</p>;
-  }
-  return (
-    <Section title="Unduh Shapefile (.zip)">
-      <div className="flex flex-wrap gap-2">
-        {downloads.map((d) => (
-          <a
-            key={d.isi}
-            href={`/api/v1/wilayah/${kode}/shp${d.isi === "batas" ? "" : `?isi=${d.isi}`}`}
-            download
-            className="inline-flex items-center rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            {d.label}
-          </a>
-        ))}
-      </div>
-      <p className="text-[11px] text-gray-400">
-        Batas wilayah indikatif BIG edisi Juni 2026. Kecamatan digabung dari batas desa, provinsi dari
-        batas kabupaten/kota.
-      </p>
-    </Section>
   );
 }
 

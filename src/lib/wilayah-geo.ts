@@ -1,6 +1,6 @@
 import type { Feature, FeatureCollection, MultiPolygon } from "geojson";
 import { supabase } from "@/lib/supabase";
-import { levelOfKode, type Level } from "@/lib/wilayah";
+import { levelOfKode, SHP_LEVELS, SLUG_OF_LEVEL, type Level } from "@/lib/wilayah";
 
 // What a geo request returns: the wilayah's own outline ("batas") or the
 // outlines of everything one/two levels below it.
@@ -23,14 +23,11 @@ export type WilayahCollection = FeatureCollection<MultiPolygon, GeoProps> & {
 
 const KODE_PATTERN = /^\d{2}(\.\d{2}(\.\d{2}(\.\d{4})?)?)?$/;
 
-// Which `isi` values make sense for each level. Provinsi stops at
-// kabupaten: every desa in a province can be 10+ MB, past the RPC timeout.
-const ALLOWED_ISI: Partial<Record<Level, Isi[]>> = {
-  provinsi: ["batas", "kabupaten"],
-  kabupaten_kota: ["batas", "kecamatan", "desa"],
-  kecamatan: ["batas", "desa"],
-  desa_kelurahan: ["batas"],
-};
+// Which `isi` values make sense for each level: the wilayah's own outline
+// is "batas", the levels below it go by their slug.
+function allowedIsi(level: Level): Isi[] {
+  return SHP_LEVELS[level].map((l) => (l === level ? "batas" : (SLUG_OF_LEVEL[l] as Isi)));
+}
 
 export const CACHE_HEADER = "public, s-maxage=86400, stale-while-revalidate=604800";
 
@@ -39,7 +36,7 @@ export function parseGeoRequest(
   isiParam: string | null
 ): { ok: true; level: Level; isi: Isi } | { ok: false; message: string } {
   const level = KODE_PATTERN.test(kode) ? levelOfKode(kode) : null;
-  const allowed = level ? ALLOWED_ISI[level] : undefined;
+  const allowed = level ? allowedIsi(level) : undefined;
   if (!level || !allowed) {
     return {
       ok: false,

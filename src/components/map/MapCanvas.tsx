@@ -16,6 +16,7 @@ import {
 } from "react-leaflet";
 import { levelOfKode, type Level } from "@/lib/wilayah";
 import type { WilayahCollection, WilayahFeature } from "@/lib/wilayah-geo";
+import { DownloadControl } from "./DownloadControl";
 import { useMapState } from "./MapContext";
 
 type ChildIsi = "kabupaten" | "kecamatan" | "desa";
@@ -295,6 +296,17 @@ export default function MapCanvas() {
           </LayersControl.BaseLayer>
         </LayersControl>
         <ZoomControlBottomRight />
+        {/* After the zoom control so Leaflet stacks it above; keyed by kode
+            so the menu closes when navigating to another wilayah. */}
+        {routeKode && routeLevel && !isSearch && (
+          <DownloadControl
+            key={routeKode}
+            kode={routeKode}
+            level={routeLevel}
+            nama={main?.nama ?? routeKode}
+            hasGeom={Boolean(main)}
+          />
+        )}
         <BasemapWatcher onChange={setBasemap} />
 
         {children && (

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { write as writeShapefile } from "@mapbox/shp-write";
 import JSZip from "jszip";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
-import type { Level } from "@/lib/wilayah";
+import { slug, toAscii, type Level } from "@/lib/wilayah";
 import {
   CACHE_HEADER,
   fetchWilayahGeo,
@@ -25,18 +25,8 @@ const FILE_PREFIX: Record<Level, string> = {
 };
 
 // shp-write's DBF writer stores one byte per UTF-16 code unit, so anything
-// outside ASCII would be mangled. Fold accents (é -> e) and drop the rest;
-// the .cpg then honestly declares UTF-8 (ASCII is a subset of it).
-function toAscii(value: string | null | undefined): string {
-  return (value ?? "")
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[^\x20-\x7e]/g, "");
-}
-
-function slug(value: string): string {
-  return toAscii(value).toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
-}
+// outside ASCII would be mangled; values go through toAscii and the .cpg
+// then honestly declares UTF-8 (ASCII is a subset of it).
 
 // DBF field names are capped at 10 characters, and every row must share
 // the same fields, so pick the set from the features' level.
