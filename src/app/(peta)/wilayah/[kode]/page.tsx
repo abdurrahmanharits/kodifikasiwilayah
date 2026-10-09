@@ -377,7 +377,10 @@ function DownloadSection({
           </a>
         ))}
       </div>
-      <p className="text-[11px] text-gray-400">Batas wilayah indikatif, diturunkan dari delineasi batas desa.</p>
+      <p className="text-[11px] text-gray-400">
+        Batas wilayah indikatif BIG edisi Juni 2026. Kecamatan digabung dari batas desa, provinsi dari
+        batas kabupaten/kota.
+      </p>
     </Section>
   );
 }
