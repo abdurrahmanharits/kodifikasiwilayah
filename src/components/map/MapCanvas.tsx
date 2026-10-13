@@ -298,15 +298,14 @@ export default function MapCanvas() {
         <ZoomControlBottomRight />
         {/* After the zoom control so Leaflet stacks it above; keyed by kode
             so the menu closes when navigating to another wilayah. */}
-        {routeKode && routeLevel && !isSearch && (
-          <DownloadControl
-            key={routeKode}
-            kode={routeKode}
-            level={routeLevel}
-            nama={main?.nama ?? routeKode}
-            hasGeom={Boolean(main)}
-          />
-        )}
+        <DownloadControl
+          key={routeKode ?? "indonesia"}
+          kode={routeKode ?? ""}
+          level={routeLevel ?? "provinsi"}
+          nama={main?.nama ?? routeKode ?? "Indonesia"}
+          hasGeom={Boolean(main)}
+          wilayahOptions={!routeKode ? children?.features.map((feature) => feature.properties) : undefined}
+        />
         <BasemapWatcher onChange={setBasemap} />
 
         {children && (
